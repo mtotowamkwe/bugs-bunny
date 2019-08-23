@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.web.WebView?>
+<Pane minHeight="770.0" minWidth="1000.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bugs.bunny.controllers.GitHubAuthenticationController">
+   <children>
+      <WebView fx:id="gitHubAuthWindow" layoutY="2.0" minHeight="770.0" minWidth="1000.0" />
+   </children>
+</Pane>

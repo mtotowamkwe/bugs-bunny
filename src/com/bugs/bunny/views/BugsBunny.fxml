@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity"
+            minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0"
+            xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.bugs.bunny.controllers.BugsBunnyController">
+   <children>
+      <SplitPane dividerPositions="0.25" layoutX="162.0" layoutY="40.0" prefHeight="560.0" prefWidth="800.0"
+                 AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                 AnchorPane.topAnchor="40.0">
+        <items>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+               <children>
+                  <TreeView fx:id="tree" prefHeight="598.0" prefWidth="196.0" AnchorPane.bottomAnchor="0.0"
+                            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+               </children>
+            </AnchorPane>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+               <children>
+                  <SplitPane dividerPositions="0.3" orientation="VERTICAL" prefHeight="598.0" prefWidth="594.0"
+                             AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                    <items>
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+                           <children>
+                              <TableView fx:id="table" editable="true" layoutX="111.0" prefHeight="175.0"
+                                         prefWidth="592.0" AnchorPane.bottomAnchor="0.0"
+                                         AnchorPane.leftAnchor="0.0"
+                                         AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                <columns>
+                                  <TableColumn fx:id="title" prefWidth="75.0" text="Title" />
+                                  <TableColumn fx:id="date" prefWidth="75.0" text="Date" />
+                                    <TableColumn fx:id="state" prefWidth="75.0" text="State" />
+                                    <TableColumn fx:id="label" prefWidth="75.0" text="Label(s)" />
+                                </columns>
+                              </TableView>
+                           </children>
+                        </AnchorPane>
+                      <AnchorPane fx:id="details" minHeight="0.0" minWidth="0.0" prefHeight="100.0"
+                                  prefWidth="160.0">
+                           <children>
+                              <HBox fx:id="titleLine" layoutX="14.0" layoutY="13.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="22.0">
+                                 <children>
+                                    <HBox fx:id="labels" layoutX="14.0" layoutY="14.0" minWidth="-Infinity">
+                                       <children>
+                                          <Hyperlink fx:id="project" layoutX="14.0" layoutY="14.0"
+                                                     text="PROJECT" />
+                                          <Hyperlink fx:id="issueId" layoutX="126.0" layoutY="14.0"
+                                                     text="ISSUE" />
+                                       </children>
+                                    </HBox>
+                                    <TextField fx:id="issueLabel" layoutX="143.0" layoutY="13.0"
+                                               prefHeight="27.0" prefWidth="438.0" promptText="Issue label(s)"
+                                               HBox.hgrow="ALWAYS" onKeyTyped="#enableSaveButton" />
+                                 </children>
+                              </HBox>
+                              <Label layoutX="20.0" layoutY="55.0" text="DESCRIPTION" />
+                              <TextArea fx:id="issueDescription" layoutX="20.0" layoutY="75.0"
+                                        prefHeight="324.0" prefWidth="546.0" AnchorPane.bottomAnchor="14.0"
+                                        AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="26.0"
+                                        AnchorPane.topAnchor="75.0" onKeyTyped="#enableSaveButton" />
+                           </children>
+                        </AnchorPane>
+                    </items>
+                  </SplitPane>
+               </children>
+            </AnchorPane>
+        </items>
+      </SplitPane>
+      <Text layoutX="14.0" layoutY="26.0" strokeType="OUTSIDE" strokeWidth="0.0" text="BugsBunny" />
+      <HBox layoutX="623.0" layoutY="8.0" spacing="9.0" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="8.0">
+         <children>
+            <Button fx:id="newIssue" layoutX="623.0" layoutY="8.0" mnemonicParsing="false" onAction="#createNewIssue" text="New" />
+            <Button fx:id="saveIssue" layoutX="676.0" layoutY="8.0" mnemonicParsing="false" onAction="#saveIssue" text="Save" />
+            <Button fx:id="deleteIssue" layoutX="734.0" layoutY="8.0" mnemonicParsing="false" onAction="#deleteIssue" text="Delete" />
+         </children>
+      </HBox>
+      <Label fx:id="messageBar" layoutX="247.0" layoutY="13.0" prefHeight="17.0" prefWidth="214.0" textAlignment="CENTER" />
+   </children>
+</AnchorPane>
