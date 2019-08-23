@@ -10,6 +10,7 @@ public class Issue {
     private String url;
     private String repository_url;
     private String html_url;
+    private int number;
     private String state;
     private String title;
     private String created_at;
@@ -128,5 +129,13 @@ public class Issue {
         String newDate = date.substring(0, date.length() - 1).replaceAll("T", " ");
         LocalDateTime localDateTime = LocalDateTime.parse(newDate, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         return localDateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    public int getNumber() {
+        return number;
+    }
+
+    public void setNumber(int number) {
+        this.number = number;
     }
 }

@@ -50,7 +50,6 @@ public class BugsBunnyController implements ScreenTransitionManager {
     @FXML Hyperlink issueId;
     @FXML TextField issueLabel;
     @FXML TextArea issueDescription;
-    @FXML Label messageBar;
     @FXML HBox titleLine;
     @FXML AnchorPane details;
 
@@ -324,13 +323,17 @@ public class BugsBunnyController implements ScreenTransitionManager {
                 for (Repo repo : repos) {
                     if (repo.getName().equals(newIssueRepo)) {
                         newIssueRepoOwner = repo.getRepoOwner();
+                        break;
                     }
                 }
 
-                boolean isCreated = sendCreateIssueRequest(
+                boolean isCreated = sendIssueRequest(
                         newIssueTitle, newIssueBody,
                         newIssueLabels, newIssueRepo,
-                        newIssueRepoOwner
+                        newIssueRepoOwner, "create",
+                        // Issue creation doesn't require an
+                        // issue number hence default to zero
+                        0
                 );
 
                 hasNewIssueBeenCreated.set(isCreated);
@@ -381,9 +384,10 @@ public class BugsBunnyController implements ScreenTransitionManager {
         }
     }
 
-    private boolean sendCreateIssueRequest(String title, String body,
-                                           String[] labels, String repo,
-                                           String owner) {
+    private boolean sendIssueRequest(
+            String title, String body, String[] labels,
+            String repo, String owner, String action,
+            int issueNumber) {
         StringBuilder responseJson = new StringBuilder();
 
         StringBuilder postBodyJson = new StringBuilder();
@@ -400,8 +404,20 @@ public class BugsBunnyController implements ScreenTransitionManager {
         int postDataLength = postData.length;
 
         try {
+            StringBuilder endpoint = new StringBuilder();
+            endpoint.append("repos/");
+            endpoint.append(owner);
+            endpoint.append("/");
+            endpoint.append(repo);
+            endpoint.append("/issues");
+
+            if (action.equals("update")) {
+                endpoint.append("/");
+                endpoint.append(issueNumber);
+            }
+
             URL url = new URL(GITHUB_API_BASE_URL +
-                            "repos/" + owner + "/" + repo + "/issues");
+                            endpoint.toString());
             URLConnection urlConn = url.openConnection();
             HttpURLConnection httpUrlConn = (HttpURLConnection) urlConn;
             httpUrlConn.setRequestMethod("POST");
@@ -471,7 +487,43 @@ public class BugsBunnyController implements ScreenTransitionManager {
         Optional<ButtonType> selection = confirmIssueUpdate.showAndWait();
 
         if (selection.get() == ButtonType.OK) {
+            // Prep owner and labels accordingly
+            String[] labels = getAllLabels(issueLabel.getText());
+            String owner = "";
 
+            for (Repo repo : repos) {
+                if (repo.getName().equals(selectedRepo)) {
+                    owner = repo.getRepoOwner();
+                    break;
+                }
+            }
+
+            boolean isUpdated = sendIssueRequest(
+                    currentSelectedIssue.getTitle(),
+                    issueDescription.getText(),
+                    labels,
+                    selectedRepo,
+                    owner,
+                    "update",
+                    currentSelectedIssue.getNumber()
+            );
+
+            if (isUpdated) {
+                notification(
+                        "information",
+                        "Save Issue Response",
+                        "The issue in the " +
+                                "project " + selectedRepo +
+                                " was successfully updated."
+                );
+                getSelectedRepoIssues(selectedRepo);
+            } else {
+                notification(
+                        "error",
+                        "Save Issue Error",
+                        newIssueErrorResponse.getMessage()
+                );
+            }
         }
     }
 

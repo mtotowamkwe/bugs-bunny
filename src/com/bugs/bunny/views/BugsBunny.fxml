@@ -77,6 +77,5 @@
             <Button fx:id="deleteIssue" layoutX="734.0" layoutY="8.0" mnemonicParsing="false" onAction="#deleteIssue" text="Delete" />
          </children>
       </HBox>
-      <Label fx:id="messageBar" layoutX="247.0" layoutY="13.0" prefHeight="17.0" prefWidth="214.0" textAlignment="CENTER" />
    </children>
 </AnchorPane>
