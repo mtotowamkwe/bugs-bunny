@@ -433,7 +433,8 @@ public class BugsBunnyController implements ScreenTransitionManager {
 
             int status = httpUrlConn.getResponseCode();
 
-            if (String.valueOf(status).charAt(0) == '4') {
+            if (String.valueOf(status).charAt(0) == '4' ||
+                String.valueOf(status).charAt(0) == '5') {
                 InputStream error = httpUrlConn.getErrorStream();
                 InputStreamReader errorReader = new InputStreamReader(error);
                 BufferedReader bufferedErrorReader = new BufferedReader(errorReader);
@@ -548,7 +549,69 @@ public class BugsBunnyController implements ScreenTransitionManager {
         Optional<ButtonType> result = confirmIssueDeletion.showAndWait();
 
         if (result.get() == ButtonType.OK) {
-            // Delete the issue from GitHub.
+            String endpoint = GITHUB_API_BASE_URL.concat("graphql");
+            String issueId = currentSelectedIssue.getNode_id();
+            String deleteIssueJsonString = "{" +
+                "\"query\"" +
+                ":" +
+                "\"mutation{" +
+                    "deleteIssue(input:{issueId:\\\"" + issueId + "\\\"}){" +
+                        "repository{" +
+                            "name" +
+                        "}" +
+                    "}" +
+                "}\"" +
+            "}";
+
+            byte[] postPayload = deleteIssueJsonString
+                    .getBytes(StandardCharsets.UTF_8);
+            int length = postPayload.length;
+
+            try {
+                URL url = new URL(endpoint);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setFixedLengthStreamingMode(length);
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                conn.setRequestProperty("Authorization", " bearer " + accessToken);
+                conn.connect();
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postPayload);
+
+                int connStatus = conn.getResponseCode();
+
+                if (String.valueOf(connStatus).charAt(0) == '4' ||
+                    String.valueOf(connStatus).charAt(0) == '5') {
+                    InputStream error = conn.getErrorStream();
+                    InputStreamReader inputStreamReader = new InputStreamReader(error);
+                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                    int value;
+                    StringBuilder response = new StringBuilder();
+
+                    while ((value = bufferedReader.read()) != -1) {
+                        response.append((char) value);
+                    }
+
+                    newIssueErrorResponse = new Gson()
+                            .fromJson(response.toString(), NewIssueErrorResponse.class);
+
+                    System.out.println("error message:\n" + newIssueErrorResponse.getMessage());
+                } else {
+                    notification(
+                            "information",
+                            "Delete Issue Response",
+                            "The issue named " + currentSelectedIssue.getTitle() + " was successfully deleted."
+                    );
+                    getSelectedRepoIssues(selectedRepo);
+                }
+            } catch (MalformedURLException mue) {
+                mue.printStackTrace();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
         }
     }
 }
