@@ -42,5 +42,6 @@
     </orderEntry>
     <orderEntry type="library" name="gson" level="project" />
     <orderEntry type="library" name="ControlsFX" level="project" />
+    <orderEntry type="library" name="SQLliteJDBC" level="project" />
   </component>
 </module>
