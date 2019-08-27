@@ -1,3 +1,4 @@
 /.idea/
 /out/
 /src/com/bugs/bunny/environment/variables/OAuthCredentials.java
+*.db
