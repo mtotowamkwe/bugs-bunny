@@ -23,6 +23,12 @@ public class SQLiteDatabaseManager {
     private static String clientSecretKey = System.getenv("GITHUB_CLIENT_SECRET_ENCRYPTION_KEY");
     private static String clientSecret = System.getenv("GITHUB_CLIENT_SECRET");
 
+    private static String gitHubOAuthCodeKey = System.getenv("GITHUB_OAUTH_CODE_ENCRYPTION_KEY");
+    private static String encryptedGitHubOAuthCode;
+
+    private static String gitHubOAuthAccessTokenKey = System.getenv("GITHUB_OAUTH_ACCESS_TOKEN_ENCRYPTION_KEY");
+    private static String encryptedGitHubOAuthAccessToken;
+
     public String getSqliteDatabaseName() {
         return sqliteDatabaseName;
     }
@@ -35,6 +41,30 @@ public class SQLiteDatabaseManager {
         return clientSecretKey;
     }
 
+    public static String getGitHubOAuthCodeKey() {
+        return gitHubOAuthCodeKey;
+    }
+
+    public static String getGitHubOAuthAccessTokenKey() {
+        return gitHubOAuthAccessTokenKey;
+    }
+
+    public static String getEncryptedGitHubOAuthCode() {
+        return encryptedGitHubOAuthCode;
+    }
+
+    public static void setEncryptedGitHubOAuthCode(String encryptedGitHubOAuthCode) {
+        SQLiteDatabaseManager.encryptedGitHubOAuthCode = encryptedGitHubOAuthCode;
+    }
+
+    public static String getEncryptedGitHubOAuthAccessToken() {
+        return encryptedGitHubOAuthAccessToken;
+    }
+
+    public static void setEncryptedGitHubOAuthAccessToken(String encryptedGitHubOAuthAccessToken) {
+        SQLiteDatabaseManager.encryptedGitHubOAuthAccessToken = encryptedGitHubOAuthAccessToken;
+    }
+
     private Connection connectToSqliteDatabase(String databaseName) {
         try {
             Class.forName("org.sqlite.JDBC");
@@ -42,10 +72,8 @@ public class SQLiteDatabaseManager {
                     "jdbc:sqlite:./src/com/bugs/bunny/model/Databases/SQLite/"
                     + databaseName
             );
-        } catch (ClassNotFoundException cnfex) {
-            cnfex.printStackTrace();
-        } catch (SQLException sqlex) {
-            sqlex.printStackTrace();
+        } catch (ClassNotFoundException | SQLException sqlex) {
+            System.out.println(sqlex.getMessage());
         }
 
         return sqliteDatabaseConnection;
@@ -70,29 +98,41 @@ public class SQLiteDatabaseManager {
                     ");"
             );
         } catch (SQLException sqlex) {
-            sqlex.printStackTrace();
+            System.out.println(sqlex.getMessage());
         }
     }
 
-    protected static void populateSqliteDatabaseTable(
-            Connection connection,
-            String[] columnsToUpdate                                          ) {
+    protected static void populateSqliteDatabaseTable(String encryptedText,
+                                                      Boolean isToken,
+                                                      Connection connection,
+                                                      String[] columnsToBeUpdated) {
+        if (isToken) {
+            setEncryptedGitHubOAuthAccessToken(encryptedText);
+        } else {
+            setEncryptedGitHubOAuthCode(encryptedText);
+        }
+        populateSqliteDatabaseTable(connection, columnsToBeUpdated);
+    }
+
+    protected static void populateSqliteDatabaseTable(Connection connection, String[] columnsToUpdate) {
+        String columns = commaSeparatedList(columnsToUpdate);
+
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(
-                    "insert into " + OAuthCredentialsTable.NAME +
-                            "(" +
-                            commaSeparatedList(columnsToUpdate) +
-                            ")" +
-                            " values (?, ?);"
-            );
-            preparedStatement.setString(
-                    1,
-                    SQLiteDatabaseManager.encrypt(clientId, clientIdKey)
-            );
-            preparedStatement.setString(
-                    2,
-                    SQLiteDatabaseManager.encrypt(clientSecret, clientSecretKey)
-            );
+            PreparedStatement preparedStatement = toggleQuery(connection, columnsToUpdate.length, columns);
+
+            if (columnsToUpdate.length == 1) {
+                if (columnsToUpdate[0].equals("encrypted_code")) {
+                    preparedStatement.setString(1,
+                            getEncryptedGitHubOAuthCode());
+                } else {
+                    preparedStatement.setString(1,
+                            getEncryptedGitHubOAuthAccessToken());
+                }
+            } else {
+                preparedStatement.setString(1, encrypt(clientId, clientIdKey));
+                preparedStatement.setString(2, encrypt(clientSecret, clientSecretKey));
+            }
+
             preparedStatement.addBatch();
 
             connection.setAutoCommit(false);
@@ -101,7 +141,29 @@ public class SQLiteDatabaseManager {
 
             connection.setAutoCommit(true);
         } catch (SQLException sqlex) {
-            sqlex.printStackTrace();
+            System.out.println(sqlex.getMessage());
+        }
+    }
+
+    private static PreparedStatement toggleQuery(Connection connection, int numberOfcolumns, String columns)
+            throws SQLException {
+        StringBuilder query = new StringBuilder();
+
+        if (numberOfcolumns == 1) {
+            query.append("insert into ");
+            query.append(OAuthCredentialsTable.NAME);
+            query.append("(");
+            query.append(columns);
+            query.append(") values (?);");
+            return connection.prepareStatement(query.toString());
+        } else {
+            query.append("insert into ");
+            query.append(OAuthCredentialsTable.NAME);
+            query.append("(");
+            query.append(columns);
+            query.append(") values (?, ?);");
+
+            return connection.prepareStatement(query.toString());
         }
     }
 
@@ -131,16 +193,9 @@ public class SQLiteDatabaseManager {
             encryptedText = new String(
                     Base64.getEncoder().encodeToString(encrypted)
             );
-        } catch (NoSuchAlgorithmException nsaex) {
-            nsaex.printStackTrace();
-        } catch (NoSuchPaddingException nspex) {
-            nspex.printStackTrace();
-        } catch (InvalidKeyException ikex) {
-            ikex.printStackTrace();
-        } catch (IllegalBlockSizeException ibsex) {
-            ibsex.printStackTrace();
-        } catch (BadPaddingException bpex) {
-            bpex.printStackTrace();
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
+                IllegalBlockSizeException | BadPaddingException bpex) {
+            System.out.println(bpex.getMessage());
         }
 
         return encryptedText;
@@ -161,16 +216,9 @@ public class SQLiteDatabaseManager {
                     Base64.getDecoder().decode(encryptedText)
             );
             decryptedText = new String(decrypted);
-        } catch (NoSuchAlgorithmException nsqex) {
-            nsqex.printStackTrace();
-        } catch (NoSuchPaddingException nspex) {
-            nspex.printStackTrace();
-        } catch (InvalidKeyException ikex) {
-            ikex.printStackTrace();
-        } catch (IllegalBlockSizeException ibsex) {
-            ibsex.printStackTrace();
-        } catch (BadPaddingException bpex) {
-            bpex.printStackTrace();
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException |
+                InvalidKeyException | IllegalBlockSizeException | BadPaddingException bpex) {
+            System.out.println(bpex.getMessage());
         }
 
         return decryptedText;
