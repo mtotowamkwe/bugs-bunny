@@ -1,5 +1,6 @@
 package com.bugs.bunny.controllers;
 
+import com.bugs.bunny.DatabaseCalls.SQLiteDatabaseManager;
 import com.bugs.bunny.environment.variables.OAuthCredentials;
 import com.bugs.bunny.interfaces.ScreenTransitionManager;
 import com.bugs.bunny.model.Issue;
@@ -34,7 +35,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class BugsBunnyController implements ScreenTransitionManager {
+public class BugsBunnyController extends SQLiteDatabaseManager
+        implements ScreenTransitionManager {
     private final String GITHUB_API_BASE_URL = "https://api.github.com/";
 
     @FXML Button newIssue;

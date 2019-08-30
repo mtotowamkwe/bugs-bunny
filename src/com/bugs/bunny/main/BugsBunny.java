@@ -1,15 +1,16 @@
 package com.bugs.bunny.main;
 
 import com.bugs.bunny.controllers.ScreensController;
+import com.bugs.bunny.controllers.SplashScreenController;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Group;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class BugsBunny extends Application {
 
+    public static String splashScreenId = "splashScreen";
+    public static String splashScreenFile = "../views/SplashScreen.fxml";
     public static String gitHubAuthScreenId = "gitHubAuthScreen";
     public static String gitHubAuthScreenFile = "../views/GitHubAuthentication.fxml";
     public static String bugsBunnyScreenId = "bugsBunnyScreen";
@@ -19,8 +20,8 @@ public class BugsBunny extends Application {
     public void start(Stage primaryStage) throws Exception {
         ScreensController mainScreensController = new ScreensController();
         mainScreensController.setHostServices(getHostServices());
-        mainScreensController.loadScreen(BugsBunny.gitHubAuthScreenId, BugsBunny.gitHubAuthScreenFile);
-        mainScreensController.setScreen(BugsBunny.gitHubAuthScreenId);
+        mainScreensController.loadScreen(splashScreenId, splashScreenFile);
+        mainScreensController.setScreen(splashScreenId);
 
         Group root = new Group();
         root.getChildren().addAll(mainScreensController);
@@ -28,8 +29,15 @@ public class BugsBunny extends Application {
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
         primaryStage.show();
-    }
 
+        if (SplashScreenController.getAccessTokenResult().get("isMissing")) {
+            mainScreensController.loadScreen(gitHubAuthScreenId, gitHubAuthScreenFile);
+            mainScreensController.setScreen(gitHubAuthScreenId);
+        } else {
+            mainScreensController.loadScreen(bugsBunnyScreenId, bugsBunnyScreenFile);
+            mainScreensController.setScreen(bugsBunnyScreenId);
+        }
+    }
 
     public static void main(String[] args) {
         launch(args);

@@ -1,5 +1,6 @@
 package com.bugs.bunny.controllers;
 
+import com.bugs.bunny.DatabaseCalls.SQLiteDatabaseManager;
 import com.bugs.bunny.environment.variables.OAuthCredentials;
 import com.bugs.bunny.interfaces.ScreenTransitionManager;
 import com.bugs.bunny.main.BugsBunny;
@@ -17,12 +18,14 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-public class GitHubAuthenticationController implements ScreenTransitionManager {
+public class GitHubAuthenticationController extends SQLiteDatabaseManager
+        implements ScreenTransitionManager {
     @FXML WebView gitHubAuthWindow;
     private ScreensController screensController;
     private String gitHubOAuthCode;
     private String gitHubAccessToken;
     private ArrayList<String> grantedScopes = new ArrayList<>();
+    private OAuthCredentials oAuthCredentials = new OAuthCredentials();
 
     public void initialize() {
         openGitHubOAuthPage();
@@ -37,12 +40,12 @@ public class GitHubAuthenticationController implements ScreenTransitionManager {
     public void setHostServices(HostServices hostServices) {
     }
 
-    public String getClientId() {
-        return OAuthCredentials.getClientId();
+    private String getClientId() {
+        return oAuthCredentials.getClientId();
     }
 
-    public String getClientSecret() {
-        return OAuthCredentials.getClientSecret();
+    private String getClientSecret() {
+        return oAuthCredentials.getClientSecret();
     }
 
     public void openGitHubOAuthPage() {
