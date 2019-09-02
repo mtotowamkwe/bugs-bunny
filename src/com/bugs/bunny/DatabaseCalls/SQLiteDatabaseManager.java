@@ -1,5 +1,6 @@
 package com.bugs.bunny.DatabaseCalls;
 
+import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema;
 import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTable;
 import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTableColumns;
 
@@ -29,7 +30,7 @@ public class SQLiteDatabaseManager {
     private static String gitHubOAuthAccessTokenKey = System.getenv("GITHUB_OAUTH_ACCESS_TOKEN_ENCRYPTION_KEY");
     private static String encryptedGitHubOAuthAccessToken;
 
-    public String getSqliteDatabaseName() {
+    public static String getSqliteDatabaseName() {
         return sqliteDatabaseName;
     }
 
@@ -80,23 +81,29 @@ public class SQLiteDatabaseManager {
     }
 
     protected static void createSqliteDatabaseTable(Connection connection) {
-        try {
-            Statement statement = connection.createStatement();
-            statement.executeUpdate("drop table if exists " +
-                    OAuthCredentialsTable.NAME +
-                    ";");
-            statement.executeUpdate("create table " +
-                    OAuthCredentialsTable.NAME +
-                    "(" +
-                    OAuthCredentialsTableColumns.CLIENT_ID +
-                    "," +
-                    OAuthCredentialsTableColumns.CLIENT_SECRET +
-                    "," +
-                    OAuthCredentialsTableColumns.CODE +
-                    "," +
-                    OAuthCredentialsTableColumns.ACCESS_TOKEN +
-                    ");"
-            );
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(
+                     "select name from sqlite_master where type='table' and name='"
+                             + OAuthCredentialsTable.NAME +
+                             "';"
+             )) {
+
+            boolean doesTheTableExists = resultSet.next();
+
+            if (!doesTheTableExists) {
+                statement.executeUpdate("create table " +
+                        OAuthCredentialsTable.NAME +
+                        "(" +
+                        OAuthCredentialsTableColumns.CLIENT_ID +
+                        "," +
+                        OAuthCredentialsTableColumns.CLIENT_SECRET +
+                        "," +
+                        OAuthCredentialsTableColumns.CODE +
+                        "," +
+                        OAuthCredentialsTableColumns.ACCESS_TOKEN +
+                        ");"
+                );
+            }
         } catch (SQLException sqlex) {
             System.out.println(sqlex.getMessage());
         }
