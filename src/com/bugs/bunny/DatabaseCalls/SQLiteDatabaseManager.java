@@ -1,6 +1,5 @@
 package com.bugs.bunny.DatabaseCalls;
 
-import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema;
 import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTable;
 import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTableColumns;
 
@@ -17,18 +16,15 @@ import java.util.Base64;
 public class SQLiteDatabaseManager {
     private static String sqliteDatabaseName = "OAuthCredentials.db";
     protected Connection sqliteDatabaseConnection = connectToSqliteDatabase(sqliteDatabaseName);
-
     private static String clientIdKey = System.getenv("GITHUB_CLIENT_ID_ENCRYPTION_KEY");
     private static String clientId = System.getenv("GITHUB_CLIENT_ID");
-
     private static String clientSecretKey = System.getenv("GITHUB_CLIENT_SECRET_ENCRYPTION_KEY");
     private static String clientSecret = System.getenv("GITHUB_CLIENT_SECRET");
-
     private static String gitHubOAuthCodeKey = System.getenv("GITHUB_OAUTH_CODE_ENCRYPTION_KEY");
     private static String encryptedGitHubOAuthCode;
-
     private static String gitHubOAuthAccessTokenKey = System.getenv("GITHUB_OAUTH_ACCESS_TOKEN_ENCRYPTION_KEY");
     private static String encryptedGitHubOAuthAccessToken;
+    protected static boolean doesTheTableExists = false;
 
     public static String getSqliteDatabaseName() {
         return sqliteDatabaseName;
@@ -88,7 +84,7 @@ public class SQLiteDatabaseManager {
                              "';"
              )) {
 
-            boolean doesTheTableExists = resultSet.next();
+            doesTheTableExists = resultSet.next();
 
             if (!doesTheTableExists) {
                 statement.executeUpdate("create table " +
@@ -124,29 +120,17 @@ public class SQLiteDatabaseManager {
     protected static void populateSqliteDatabaseTable(Connection connection, String[] columnsToUpdate) {
         String columns = commaSeparatedList(columnsToUpdate);
 
-        try {
-            PreparedStatement preparedStatement = toggleQuery(connection, columnsToUpdate.length, columns);
-
+        try (PreparedStatement preparedStatement = toggleQuery(connection, columnsToUpdate.length, columns)) {
             if (columnsToUpdate.length == 1) {
-                if (columnsToUpdate[0].equals("encrypted_code")) {
-                    preparedStatement.setString(1,
-                            getEncryptedGitHubOAuthCode());
-                } else {
-                    preparedStatement.setString(1,
-                            getEncryptedGitHubOAuthAccessToken());
-                }
+                preparedStatement.execute();
             } else {
                 preparedStatement.setString(1, encrypt(clientId, clientIdKey));
                 preparedStatement.setString(2, encrypt(clientSecret, clientSecretKey));
+                preparedStatement.addBatch();
+                connection.setAutoCommit(false);
+                preparedStatement.executeBatch();
+                connection.setAutoCommit(true);
             }
-
-            preparedStatement.addBatch();
-
-            connection.setAutoCommit(false);
-
-            preparedStatement.executeBatch();
-
-            connection.setAutoCommit(true);
         } catch (SQLException sqlex) {
             System.out.println(sqlex.getMessage());
         }
@@ -157,11 +141,17 @@ public class SQLiteDatabaseManager {
         StringBuilder query = new StringBuilder();
 
         if (numberOfcolumns == 1) {
-            query.append("insert into ");
+            query.append("update ");
             query.append(OAuthCredentialsTable.NAME);
-            query.append("(");
+            query.append(" set ");
             query.append(columns);
-            query.append(") values (?);");
+            query.append("='");
+            if (columns.equals("encrypted_code")) {
+                query.append(getEncryptedGitHubOAuthCode());
+            } else if (columns.equals("encrypted_access_token")) {
+                query.append(getEncryptedGitHubOAuthAccessToken());
+            }
+            query.append("';");
             return connection.prepareStatement(query.toString());
         } else {
             query.append("insert into ");

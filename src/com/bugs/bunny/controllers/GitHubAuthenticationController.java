@@ -4,6 +4,8 @@ import com.bugs.bunny.DatabaseCalls.SQLiteDatabaseManager;
 import com.bugs.bunny.environment.variables.OAuthCredentials;
 import com.bugs.bunny.interfaces.ScreenTransitionManager;
 import com.bugs.bunny.main.BugsBunny;
+import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTable;
+import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTableColumns;
 import javafx.application.HostServices;
 import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
@@ -16,10 +18,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 
-public class GitHubAuthenticationController extends SQLiteDatabaseManager
-        implements ScreenTransitionManager {
+public class GitHubAuthenticationController extends SQLiteDatabaseManager implements ScreenTransitionManager {
     @FXML WebView gitHubAuthWindow;
     private ScreensController screensController;
     private String gitHubOAuthCode;
@@ -59,7 +63,32 @@ public class GitHubAuthenticationController extends SQLiteDatabaseManager
                     if (newState == Worker.State.SUCCEEDED) {
                         String url1 = gitHubAuthWindow.getEngine().getLocation();
                         if (url1.contains("callback")) {
-                            gitHubOAuthCode = getGitHubOAuthCode(url1);
+                            String encryptedGitHubOAuthCode = encrypt(getGitHubOAuthCode(url1), getGitHubOAuthCodeKey());
+                            if (super.sqliteDatabaseConnection != null) {
+                                populateSqliteDatabaseTable(
+                                        encryptedGitHubOAuthCode,
+                                        false,
+                                        super.sqliteDatabaseConnection,
+                                        new String[] {
+                                                OAuthCredentialsTableColumns.CODE
+                                        }
+                                );
+
+                                try (Statement statement = super.sqliteDatabaseConnection.createStatement();
+                                     ResultSet record = statement.executeQuery(queryBuilder("encrypted_code "))) {
+                                    while (record.next()) {
+                                        if (record.getString("encrypted_code") != null) {
+                                            gitHubOAuthCode = decrypt(
+                                                    record.getString("encrypted_code"),
+                                                    super.getGitHubOAuthCodeKey()
+                                            );
+                                        }
+                                    }
+                                } catch (SQLException sqlex) {
+                                    System.out.println(sqlex.getMessage());
+                                }
+                            }
+
                             String gitHubApiResponse = getGitHubApiResponse(clientId, clientSecret, gitHubOAuthCode);
                             getGrantedScopes(gitHubApiResponse);
                             screensController.loadScreen(BugsBunny.bugsBunnyScreenId, BugsBunny.bugsBunnyScreenFile);
@@ -68,6 +97,18 @@ public class GitHubAuthenticationController extends SQLiteDatabaseManager
                     }
                 }
         );
+    }
+
+    private String queryBuilder(String column) {
+        StringBuilder queryStatement = new StringBuilder();
+
+        queryStatement.append("select ");
+        queryStatement.append(column);
+        queryStatement.append(" from ");
+        queryStatement.append(OAuthCredentialsTable.NAME);
+        queryStatement.append(";");
+
+        return queryStatement.toString();
     }
 
     private String getGitHubOAuthCode(String callbackUrl) {
@@ -100,10 +141,8 @@ public class GitHubAuthenticationController extends SQLiteDatabaseManager
             }
         } catch (MalformedURLException muex) {
             System.out.println("There is an issue with the URL check error details below.\n" + muex.getMessage());
-            muex.printStackTrace();
         } catch (IOException ioe) {
-            System.out.println("An I/O issue occurred see error details below.\n");
-            ioe.printStackTrace();
+            System.out.println("An I/O issue occurred see error details below.\n" + ioe.getMessage());
         }
 
         return accessToken.toString();
@@ -116,7 +155,37 @@ public class GitHubAuthenticationController extends SQLiteDatabaseManager
             String[] elementArray = element.split("=");
 
             if (elementArray[0].equals("access_token")) {
-                gitHubAccessToken = elementArray[1];
+                String encryptedGitHubOAuthAccessToken =
+                        encrypt(elementArray[1], getGitHubOAuthAccessTokenKey());
+
+                if (super.sqliteDatabaseConnection != null) {
+                    populateSqliteDatabaseTable(
+                            encryptedGitHubOAuthAccessToken,
+                            true,
+                            super.sqliteDatabaseConnection,
+                            new String[] {
+                                    OAuthCredentialsTableColumns.ACCESS_TOKEN
+                            }
+                    );
+
+                    try (Statement statement =
+                                 super.sqliteDatabaseConnection.createStatement();
+                        ResultSet results = statement.executeQuery(queryBuilder(
+                                "encrypted_access_token"
+                        ))) {
+                        while (results.next()) {
+                            if (results.getString("encrypted_access_token") != null) {
+                                gitHubAccessToken = decrypt(
+                                        results.getString("encrypted_access_token"),
+                                        super.getGitHubOAuthAccessTokenKey()
+                                );
+                            }
+                        }
+                    } catch (SQLException sqlex) {
+                        System.out.println(sqlex.getMessage());
+                    }
+                }
+
                 OAuthCredentials.setAccessToken(gitHubAccessToken);
             } else if (elementArray[0].equals("scope")){
                 String[] elementArrayScopes = elementArray[1].split("%2C");

@@ -3,7 +3,6 @@ package com.bugs.bunny.controllers;
 import com.bugs.bunny.DatabaseCalls.SQLiteDatabaseManager;
 import com.bugs.bunny.environment.variables.OAuthCredentials;
 import com.bugs.bunny.interfaces.ScreenTransitionManager;
-import com.bugs.bunny.main.BugsBunny;
 import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTable;
 import com.bugs.bunny.model.Databases.SQLite.OAuthCredentialsDatabaseSchema.OAuthCredentialsTableColumns;
 import javafx.application.HostServices;
@@ -38,13 +37,17 @@ public class SplashScreenController extends SQLiteDatabaseManager implements Scr
     private void exitSplashScreen() {
         if (connection != null) {
             super.createSqliteDatabaseTable(connection);
-            oAuthCredentials.updateSqliteDatabaseTable(
-                    connection,
-                    new String[] {
-                            OAuthCredentialsTableColumns.CLIENT_ID,
-                            OAuthCredentialsTableColumns.CLIENT_SECRET
-                    }
-            );
+
+            if (!doesTheTableExists) {
+                oAuthCredentials.updateSqliteDatabaseTable(
+                        connection,
+                        new String[] {
+                                OAuthCredentialsTableColumns.CLIENT_ID,
+                                OAuthCredentialsTableColumns.CLIENT_SECRET
+                        }
+                );
+            }
+
             if (!accessTokenExists(connection)) {
                 accessTokenResult.put("isMissing", true);
             } else {
@@ -60,17 +63,15 @@ public class SplashScreenController extends SQLiteDatabaseManager implements Scr
     }
 
     private boolean accessTokenExists(Connection connection) {
-        try {
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("select * from " + OAuthCredentialsTable.NAME + ";");
-
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("select * from " + OAuthCredentialsTable.NAME + ";")) {
             while (resultSet.next()) {
                 if (resultSet.getString("encrypted_access_token") != null) {
                     return true;
                 }
             }
         } catch (SQLException sqlex) {
-            sqlex.printStackTrace();
+            System.out.println(sqlex.getMessage());
         }
 
         return false;

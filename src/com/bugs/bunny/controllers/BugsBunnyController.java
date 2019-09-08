@@ -58,7 +58,7 @@ public class BugsBunnyController extends SQLiteDatabaseManager
     private ScreensController screensController;
     private Repo[] repos;
     private Issue[] issues;
-    private String accessToken = OAuthCredentials.getAccessToken();
+    private String accessToken = new OAuthCredentials().getAccessToken();
     private HostServices hostServices;
     private String selectedRepo;
     private NewIssueErrorResponse newIssueErrorResponse;
