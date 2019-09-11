@@ -27,6 +27,7 @@ public class BugsBunny extends Application {
         root.getChildren().addAll(mainScreensController);
 
         Scene scene = new Scene(root);
+        primaryStage.setTitle("Bugs Bunny");
         primaryStage.setScene(scene);
         primaryStage.show();
 
