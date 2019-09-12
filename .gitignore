@@ -2,3 +2,5 @@
 /out/
 /src/com/bugs/bunny/environment/variables/OAuthCredentials.java
 *.db
+/server-side/bugs_bunny/.idea
+/server-side/bugs_bunny/out
